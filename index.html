@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Burger?</title>
+</head>
+<body>
+
+<!-- INTRO -->
+<div id="screen-intro">
+  <h1>Cornbread...</h1>
+  <p>lock in gng</p>
+  <button onclick="startQuiz()">Start</button>
+</div>
+
+<!-- PART 1: Drag phrases -->
+<div id="screen-quiz" style="display:none">
+  <p id="step-label"></p>
+  <h2 id="quiz-question"></h2>
+  <p>Drag the items into the correct order:</p>
+  <div id="drop-zone"></div>
+  <p id="status-msg"></p>
+</div>
+
+<!-- BETWEEN PARTS -->
+<div id="screen-between" style="display:none">
+  <h1>Part 1 done!</h1>
+  <button onclick="startPart2()">Next</button>
+</div>
+
+<!-- PART 2: Word scramble -->
+<div id="screen-words" style="display:none">
+  <p id="word-step-label"></p>
+  <h2>Tap the words in the correct order:</h2>
+  <p id="word-target-hint" style="color:gray;font-style:italic"></p>
+  <hr>
+  <p><strong>Your answer:</strong></p>
+  <div id="answer-zone" style="min-height:2em;border:1px solid black;padding:6px;margin-bottom:8px;"></div>
+  <button onclick="clearAnswer()" style="margin-bottom:12px;">Clear</button>
+  <br>
+  <p><strong>Word bank:</strong></p>
+  <div id="word-bank"></div>
+  <p id="word-status-msg"></p>
+</div>
+
+<!-- PART 2 COMPLETE -->
+<div id="screen-part2-done" style="display:none">
+  <h1>Part 2 done!</h1>
+  <button onclick="showFinal()">and finally...</button>
+</div>
+
+<!-- FINAL -->
+<div id="screen-final" style="display:none">
+  <h1>look behind you</h1>
+</div>
+
+<script>
+  // ---- PART 1 ----
+  const PHRASES = [
+    {
+      question: "What is the first phrase?",
+      items: ["a loaf of bread", "a container of milk", "a stick of butter"]
+    },
+    {
+      question: "What is the second phrase?",
+      items: ["A loaf of milk", "a container of bread", "and a joe dirt DVD"]
+    },
+    {
+      question: "What is the third phrase?",
+      items: ["A joe dirt DVD", "Scarlett Johansson", "and treasure from a fish tank"]
+    }
+  ];
+
+  let currentPhrase = 0;
+  let shuffledItems = [];
+  let dragSrcIndex = null;
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    const correct = PHRASES[currentPhrase].items;
+    const isCorrect = a.every((v, i) => v === correct[i]);
+    return isCorrect ? shuffle(arr) : a;
+  }
+
+  function showScreen(id) {
+    ['screen-intro','screen-quiz','screen-between','screen-words','screen-part2-done','screen-final'].forEach(s => {
+      document.getElementById(s).style.display = 'none';
+    });
+    document.getElementById(id).style.display = 'block';
+  }
+
+  function startQuiz() {
+    currentPhrase = 0;
+    showScreen('screen-quiz');
+    loadPhrase();
+  }
+
+  function loadPhrase() {
+    const phrase = PHRASES[currentPhrase];
+    shuffledItems = shuffle(phrase.items);
+    document.getElementById('step-label').textContent = `Part 1 — Phrase ${currentPhrase + 1} of ${PHRASES.length}`;
+    document.getElementById('quiz-question').textContent = phrase.question;
+    document.getElementById('status-msg').textContent = '';
+    renderItems();
+  }
+
+  function renderItems() {
+    const zone = document.getElementById('drop-zone');
+    zone.innerHTML = '';
+    shuffledItems.forEach((text, index) => {
+      const el = document.createElement('div');
+      el.draggable = true;
+      el.dataset.index = index;
+      el.textContent = text;
+      el.style.border = '1px solid black';
+      el.style.padding = '6px';
+      el.style.marginBottom = '4px';
+      el.style.cursor = 'grab';
+      el.style.background = 'white';
+      el.style.width = 'fit-content';
+
+      el.addEventListener('dragstart', function() { dragSrcIndex = parseInt(this.dataset.index); });
+      el.addEventListener('dragover', function(e) { e.preventDefault(); });
+      el.addEventListener('drop', function() {
+        const targetIndex = parseInt(this.dataset.index);
+        if (dragSrcIndex !== targetIndex) {
+          [shuffledItems[dragSrcIndex], shuffledItems[targetIndex]] = [shuffledItems[targetIndex], shuffledItems[dragSrcIndex]];
+          renderItems();
+          checkOrder();
+        }
+      });
+
+      el.addEventListener('touchstart', onTouchStart, { passive: true });
+      el.addEventListener('touchmove', onTouchMove, { passive: false });
+      el.addEventListener('touchend', onTouchEnd);
+
+      zone.appendChild(el);
+    });
+  }
+
+  let touchDragIndex = null, touchClone = null, touchOffsetX = 0, touchOffsetY = 0;
+
+  function onTouchStart(e) {
+    touchDragIndex = parseInt(this.dataset.index);
+    const touch = e.touches[0];
+    const rect = this.getBoundingClientRect();
+    touchOffsetX = touch.clientX - rect.left;
+    touchOffsetY = touch.clientY - rect.top;
+    touchClone = this.cloneNode(true);
+    touchClone.style.cssText = `position:fixed;width:${rect.width}px;left:${rect.left}px;top:${rect.top}px;opacity:0.7;pointer-events:none;z-index:1000;border:1px solid black;padding:6px;background:white;`;
+    document.body.appendChild(touchClone);
+    this.style.opacity = '0.3';
+  }
+  function onTouchMove(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    if (touchClone) {
+      touchClone.style.left = (touch.clientX - touchOffsetX) + 'px';
+      touchClone.style.top  = (touch.clientY - touchOffsetY) + 'px';
+    }
+  }
+  function onTouchEnd(e) {
+    if (touchClone) { touchClone.remove(); touchClone = null; }
+    document.querySelectorAll('#drop-zone div').forEach(el => el.style.opacity = '');
+    const touch = e.changedTouches[0];
+    let targetIndex = null;
+    document.querySelectorAll('#drop-zone div').forEach(el => {
+      const rect = el.getBoundingClientRect();
+      if (touch.clientX >= rect.left && touch.clientX <= rect.right && touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+        targetIndex = parseInt(el.dataset.index);
+      }
+    });
+    if (targetIndex !== null && targetIndex !== touchDragIndex) {
+      [shuffledItems[touchDragIndex], shuffledItems[targetIndex]] = [shuffledItems[targetIndex], shuffledItems[touchDragIndex]];
+      renderItems();
+      checkOrder();
+    }
+    touchDragIndex = null;
+  }
+
+  function checkOrder() {
+    const correct = PHRASES[currentPhrase].items;
+    const isCorrect = shuffledItems.every((v, i) => v === correct[i]);
+    if (isCorrect) {
+      document.getElementById('status-msg').textContent = 'Correct!';
+      setTimeout(() => {
+        currentPhrase++;
+        if (currentPhrase >= PHRASES.length) {
+          showScreen('screen-between');
+        } else {
+          loadPhrase();
+        }
+      }, 800);
+    }
+  }
+
+  // ---- PART 2: Word scramble ----
+  const WORD_PHRASES = [
+    "did he just say his last name is burger?",
+    "do you come with fries?",
+    "is your middle name cheese?"
+  ];
+
+  let currentWordPhrase = 0;
+  let wordBank = [];
+  let answerWords = [];
+
+  function shuffleWords(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    // Make sure it's not already in order
+    const phrase = WORD_PHRASES[currentWordPhrase];
+    const correct = tokenise(phrase);
+    if (a.map(w=>w.text).join(' ') === correct.map(w=>w.text).join(' ')) return shuffleWords(arr);
+    return a;
+  }
+
+  // Split phrase into word tokens, keeping punctuation attached
+  function tokenise(phrase) {
+    return phrase.split(' ').map((w, i) => ({ text: w, id: i }));
+  }
+
+  function startPart2() {
+    currentWordPhrase = 0;
+    showScreen('screen-words');
+    loadWordPhrase();
+  }
+
+  function loadWordPhrase() {
+    const phrase = WORD_PHRASES[currentWordPhrase];
+    const tokens = tokenise(phrase);
+    wordBank = shuffleWords(tokens.map(w => ({ ...w })));
+    answerWords = [];
+    document.getElementById('word-step-label').textContent = `Part 2 — Phrase ${currentWordPhrase + 1} of ${WORD_PHRASES.length}`;
+    document.getElementById('word-status-msg').textContent = '';
+    renderWordPhrase();
+  }
+
+  function renderWordPhrase() {
+    // Answer zone
+    const answerZone = document.getElementById('answer-zone');
+    answerZone.innerHTML = '';
+    answerWords.forEach((w, i) => {
+      const btn = document.createElement('button');
+      btn.textContent = w.text;
+      btn.style.marginRight = '4px';
+      btn.style.marginBottom = '4px';
+      btn.onclick = () => removeFromAnswer(i);
+      answerZone.appendChild(btn);
+    });
+
+    // Word bank
+    const bank = document.getElementById('word-bank');
+    bank.innerHTML = '';
+    wordBank.forEach((w, i) => {
+      const btn = document.createElement('button');
+      btn.textContent = w.text;
+      btn.style.marginRight = '4px';
+      btn.style.marginBottom = '4px';
+      btn.onclick = () => addToAnswer(i);
+      bank.appendChild(btn);
+    });
+  }
+
+  function addToAnswer(bankIndex) {
+    const word = wordBank.splice(bankIndex, 1)[0];
+    answerWords.push(word);
+    document.getElementById('word-status-msg').textContent = '';
+    renderWordPhrase();
+    // Auto-check when all words are used
+    if (wordBank.length === 0) checkWordOrder();
+  }
+
+  function removeFromAnswer(answerIndex) {
+    const word = answerWords.splice(answerIndex, 1)[0];
+    wordBank.push(word);
+    document.getElementById('word-status-msg').textContent = '';
+    renderWordPhrase();
+  }
+
+  function clearAnswer() {
+    wordBank = [...wordBank, ...answerWords];
+    answerWords = [];
+    document.getElementById('word-status-msg').textContent = '';
+    renderWordPhrase();
+  }
+
+  function checkWordOrder() {
+    const phrase = WORD_PHRASES[currentWordPhrase];
+    const correct = tokenise(phrase).map(w => w.text).join(' ');
+    const attempt = answerWords.map(w => w.text).join(' ');
+    if (attempt === correct) {
+      document.getElementById('word-status-msg').textContent = 'Correct!';
+      setTimeout(() => {
+        currentWordPhrase++;
+        if (currentWordPhrase >= WORD_PHRASES.length) {
+          showScreen('screen-part2-done');
+        } else {
+          loadWordPhrase();
+        }
+      }, 800);
+    } else {
+      document.getElementById('word-status-msg').textContent = 'Not quite — try again!';
+      // Put all answer words back into bank for retry
+      wordBank = [...wordBank, ...answerWords];
+      answerWords = [];
+      wordBank = shuffleWords(wordBank);
+      setTimeout(renderWordPhrase, 600);
+    }
+  }
+
+  function showFinal() {
+    showScreen('screen-final');
+  }
+</script>
+</body>
+</html>
