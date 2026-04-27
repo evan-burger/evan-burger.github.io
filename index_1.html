@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Memory Quiz</title>
+<title>Burger?</title>
 </head>
 <body>
 
 <!-- INTRO -->
 <div id="screen-intro">
-  <h1>Memory Quiz</h1>
-  <p>Let's see how well you remember!</p>
-  <button onclick="startPart1()">Start</button>
+  <h1>Burger?</h1>
+  <img src="doesheknow.jpg">
+  <p></p>
+  <button onclick="startPart1()">...</button>
 </div>
 
 <!-- PART 1: Word scramble -->
@@ -19,6 +20,7 @@
   <p id="word-step-label"></p>
   <h2>Tap the words in the correct order:</h2>
   <hr>
+  <img id="word-phrase-image" src="" alt="" style="max-width:300px; display:block; margin-bottom:12px;">
   <p><strong>Your answer:</strong></p>
   <div id="answer-zone" style="min-height:2em;border:1px solid black;padding:6px;margin-bottom:8px;"></div>
   <button onclick="clearAnswer()" style="margin-bottom:12px;">Clear</button>
@@ -35,25 +37,26 @@
 
 <!-- BETWEEN PARTS -->
 <div id="screen-between" style="display:none">
-  <h1>Part 1 done!</h1>
+  <h1>Wow!</h1>
+  <img src="burger.gif">
   <button onclick="startPart2()">Next</button>
 </div>
 
 <!-- PART 2: All 3 drag-and-drop phrases on one screen -->
 <div id="screen-quiz" style="display:none">
-  <h2>Part 2</h2>
+  <h2>Petah?</h2>
   <p>Drag each phrase into the correct order, then click Confirm.</p>
   <hr>
 
-  <p><strong>Phrase 1:</strong> Drag into order.</p>
+  <img src="peter.jpg">
   <div id="drop-zone-0" class="dropzone"></div>
   <hr>
 
-  <p><strong>Phrase 2:</strong> Drag into order.</p>
+
   <div id="drop-zone-1" class="dropzone"></div>
   <hr>
 
-  <p><strong>Phrase 3:</strong> Drag into order.</p>
+
   <div id="drop-zone-2" class="dropzone"></div>
   <hr>
 
@@ -62,7 +65,9 @@
 
 <!-- FINAL -->
 <div id="screen-final" style="display:none">
-  <h1>look behind you</h1>
+  <h1>Wrong again!!</h1>
+  <img src="nightmare.jpg">
+  <h1>Look behind you</h1>
 </div>
 
 <script>
@@ -100,6 +105,11 @@
   let currentWordPhrase = 0;
   let wordBank = [];
   let answerWords = [];
+  const WORD_PHRASE_IMAGES = [
+  "burger2.gif",  // image for "did he just say his last name is burger?"
+  "fries.gif",  // image for "do you come with fries?"
+  "burger3.gif"   // image for "is your middle name cheese?"
+];
 
   function tokenise(phrase) {
     return phrase.split(' ').map((w, i) => ({ text: w, id: i }));
@@ -128,6 +138,7 @@
     answerWords = [];
     document.getElementById('word-step-label').textContent = `Part 1 — Phrase ${currentWordPhrase + 1} of ${WORD_PHRASES.length}`;
     renderWordPhrase();
+    document.getElementById('word-phrase-image').src = WORD_PHRASE_IMAGES[currentWordPhrase];
   }
 
   function renderWordPhrase() {
@@ -201,8 +212,8 @@
   // ---- PART 2: All 3 drag-and-drop on one screen (rigged) ----
   const PHRASES = [
     ["a loaf of bread", "a container of milk", "a stick of butter"],
-    ["A loaf of milk", "a container of bread", "and a joe dirt DVD"],
-    ["A joe dirt DVD", "Scarlett Johansson", "and treasure from a fish tank"]
+    ["a loaf of milk", "a container of bread", "and a Joe Dirt DVD"],
+    ["a Joe Dirt DVD", "Scarlett Johansson", "and treasure from a fish tank"]
   ];
 
   let phraseOrders = [[], [], []];
